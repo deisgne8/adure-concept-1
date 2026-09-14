@@ -165,6 +165,16 @@ updateSaved();filter();if(location.hash.startsWith('#property-'))detail(location
 (() => {
   const map=document.querySelector('.proof-map-art');
   if(!map)return;
+  map.classList.add('is-static-map');
+  const svg=map.querySelector('.abu-dhabi-graphic');
+  const image=document.createElement('img');image.className='static-map-image';image.src='assets/abu-dhabi-map-right-transparent.png';image.alt='Hand-drawn illustrated map of Abu Dhabi concentrated along the right side';image.width=1672;image.height=941;image.loading='lazy';map.prepend(image);svg.hidden=true;
+  svg?.removeAttribute('tabindex');svg?.removeAttribute('aria-label');
+  map.querySelectorAll('[data-map-project]').forEach(pin=>{pin.removeAttribute('role');pin.removeAttribute('tabindex');pin.removeAttribute('aria-expanded');pin.removeAttribute('aria-controls')});
+})();
+
+(() => {
+  const map=document.querySelector('.proof-map-art');
+  if(!map||map.classList.contains('is-static-map'))return;
   const pins=[...map.querySelectorAll('[data-map-project]')];
   let active=null,timer=0;
   const preview=pin=>document.getElementById(pin.getAttribute('aria-controls'));
@@ -212,7 +222,7 @@ updateSaved();filter();if(location.hash.startsWith('#property-'))detail(location
 
 (() => {
   const map=document.querySelector('.proof-map-art'),svg=map?.querySelector('.abu-dhabi-graphic');
-  if(!svg)return;
+  if(!svg||map.classList.contains('is-static-map'))return;
   const pins=[...map.querySelectorAll('[data-map-project]')];
   const controls=document.createElement('div');controls.className='map-explore-controls';
   controls.innerHTML='<label><select aria-label="Find a project"><option value="">All projects</option></select></label><div class="map-zoom-group" role="group" aria-label="Map zoom"><button type="button" data-zoom="in" aria-label="Zoom in">+</button><button type="button" data-zoom="out" aria-label="Zoom out">−</button></div><button type="button" data-zoom="reset">Reset view</button><span>Drag to explore</span>';
