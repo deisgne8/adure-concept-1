@@ -421,3 +421,43 @@ apply();
   running.clear();
  });
 })();
+/* Replace the original concept photography with the supplied Hidd Al Saadiyat shoot. */
+(() => {
+ const base='assets/hidd-al-sadiyaat/';
+ const replacements={
+  'assets/hero-coast.png':'DSC09714.jpg',
+  'assets/service-buy-refined.png':'DSC00404.jpg',
+  'assets/villa-service.png':'DSC00222.jpg',
+  'assets/abu-dhabi/qaryat-banner-2.jpg':'DSC09804.jpg',
+  'assets/service-manage-refined.png':'DSC00241.jpg',
+  'assets/abu-dhabi/qaryat-banner-1.jpg':'DSC09978.jpg',
+  'assets/residential-listing.png':'DSC00793.jpg',
+  'assets/commercial-listing.png':'DSC09539.jpg',
+  'assets/abu-dhabi/qaryat-banner-4.jpg':'DSC09894.jpg',
+  'assets/abu-dhabi/qaryat-banner-5.jpg':'DSC00358.jpg',
+  'assets/management-asset.png':'DSC00033.jpg',
+  'assets/abu-dhabi/hili.jpg':'DSC00863.jpg',
+  'assets/abu-dhabi/al-mushrif.png':'DSC09504.jpg',
+  'assets/abu-dhabi/qaryat-overview.png':'DSC09392.jpg',
+  'assets/abu-dhabi/ghantoot.jpeg':'DSC00250.jpg',
+  'assets/portfolio-city.png':'DSC00487.jpg',
+  'assets/portfolio-residence.png':'DSC09457.jpg',
+  'assets/abu-dhabi/qaryat-banner-3.jpg':'DSC00428.jpg',
+  'assets/portfolio-community.png':'DSC09359.jpg',
+  'assets/portfolio-commercial.png':'DSC09500.jpg',
+  'assets/management-finance.png':'DSC00882.jpg',
+  'assets/transition-review.png':'DSC09906.jpg',
+  'assets/transition-inspect.png':'DSC09375.jpg',
+  'assets/transition-takeover.png':'DSC00802.jpg',
+  'assets/transition-manage.png':'DSC00680.jpg',
+  'assets/sector-government.png':'DSC09622.jpg',
+  'assets/sector-corporate-calm.png':'DSC09330.jpg',
+  'assets/abu-dhabi/qaryat-lounge.jpg':'DSC00448.jpg'
+ };
+ document.querySelectorAll('img[src]').forEach(image=>{
+  const filename=replacements[image.getAttribute('src')];
+  if(!filename)return;
+  image.src=base+filename;
+  image.alt='Hidd Al Saadiyat architecture and waterfront community, Abu Dhabi';
+ });
+})();
