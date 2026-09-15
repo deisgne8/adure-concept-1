@@ -603,44 +603,54 @@ apply();
  setView('list');
 })();
 
-/* Count up proof statistics once as they enter the viewport. */
+/* Count up proof statistics whenever the row enters the viewport. */
 (() => {
  const metrics=document.querySelector('#proof .metrics');
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
- if(!metrics || reduced.matches || !('IntersectionObserver' in window))return;
+ if(!metrics || !('IntersectionObserver' in window))return;
  const counters=[];
- metrics.querySelectorAll('dt').forEach(term=>{
-  // Animate only the number text; keep suffixes, units and accessible values intact.
+ metrics.querySelectorAll('dt').forEach((term,index)=>{
+  // Keep the final value available to assistive technology throughout the animation.
   term.setAttribute('aria-label',term.textContent.trim());
   const walker=document.createTreeWalker(term,NodeFilter.SHOW_TEXT);
   let node;
   while((node=walker.nextNode())){
    if(!/\d/.test(node.nodeValue))continue;
    const original=node.nodeValue;
-   counters.push({node,original,render:progress=>original.replace(/\d[\d,]*/g,value=>{
+   counters.push({node,original,delay:index*100,render:progress=>original.replace(/\d[\d,]*/g,value=>{
     const total=Number(value.replace(/,/g,''));
     const current=Math.round(total*progress);
     return value.includes(',')?current.toLocaleString('en-US'):String(current);
    })});
   }
  });
- let frame=0;
- const finish=()=>{cancelAnimationFrame(frame);counters.forEach(counter=>counter.node.nodeValue=counter.original)};
- const observer=new IntersectionObserver(entries=>{
-  if(!entries.some(entry=>entry.isIntersecting))return;
-  observer.disconnect();
+ let frame=0,visible=false;
+ const finish=()=>{cancelAnimationFrame(frame);frame=0;counters.forEach(counter=>counter.node.nodeValue=counter.original)};
+ const animate=()=>{
+  finish();
   if(reduced.matches)return;
-  const start=performance.now();
+  counters.forEach(counter=>counter.node.nodeValue=counter.render(0));
+  const start=performance.now(),duration=2000;
   const tick=now=>{
-   const progress=Math.min(1,(now-start)/1600);
-   const eased=1-Math.pow(1-progress,3);
-   counters.forEach(counter=>counter.node.nodeValue=counter.render(eased));
-   if(progress<1)frame=requestAnimationFrame(tick);else finish();
+   let complete=true;
+   counters.forEach(counter=>{
+    const progress=Math.max(0,Math.min(1,(now-start-counter.delay)/duration));
+    const eased=1-Math.pow(1-progress,3);
+    counter.node.nodeValue=counter.render(eased);
+    if(progress<1)complete=false;
+   });
+   if(complete)finish();else frame=requestAnimationFrame(tick);
   };
   frame=requestAnimationFrame(tick);
- },{threshold:.35});
+ };
+ const observer=new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{
+   if(entry.intersectionRatio>=.35 && !visible){visible=true;animate()}
+   else if(!entry.isIntersecting){visible=false;finish()}
+  });
+ },{threshold:[0,.35]});
  observer.observe(metrics);
- reduced.addEventListener('change',event=>{if(event.matches){observer.disconnect();finish()}});
+ reduced.addEventListener('change',()=>{if(reduced.matches)finish()});
 })();
 /* Facilities and amenities dropdown. */
 (() => {
