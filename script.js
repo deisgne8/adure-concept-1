@@ -34,8 +34,8 @@ try{saved=JSON.parse(localStorage.getItem('adure-saved')||'[]');if(!Array.isArra
 let toastTimer;function toast(text){$('#toast').textContent=text;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),4500)}
 function persist(){try{localStorage.setItem('adure-saved',JSON.stringify(saved))}catch{toast('Saved for this visit. Browser storage is unavailable.')}}
 function updateSaved(){cards.forEach(c=>{const active=saved.includes(c.dataset.id);c.querySelector('.favorite').setAttribute('aria-pressed',String(active));c.querySelector('.favorite').textContent=active?'♥':'♡'});$('#saved-count').textContent=String(saved.length)}
-function filter(){const location=$('#location').value,type=$('#property-type').value,beds=$('#bedrooms').value,price=$('#price').value;let count=0;cards.forEach(c=>{const d=c.dataset;const n=Number(d.price);let visible=mode==='Lease'&&(!location||location===d.location)&&(!type||type===d.type)&&(!savedOnly||saved.includes(d.id));if(beds)visible=visible&&d.beds!==''&&(beds==='1-2'?Number(d.beds)>=1&&Number(d.beds)<=2:beds==='3'?Number(d.beds)>=3:Number(d.beds)===0);if(price){const [lo,hi]=price.split('-').map(Number);visible=visible&&n>=lo&&(!hi||n<hi)}c.hidden=!visible;if(visible)count++});$('#results-count').textContent=`${count} ${savedOnly?'saved ':''}preview ${count===1?'property':'properties'}`;$('#empty-state').hidden=count>0;$('#empty-enquiry').dataset.enquiry=mode}
-function setMode(next){mode=next;$$('[data-tab]').forEach(b=>{const selected=b.dataset.tab===mode;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected))});$('#price').innerHTML=mode==='Buy'?'<option value="">Any price</option><option value="0-1000000">Under AED 1M</option><option value="1000000-3000000">AED 1M–3M</option><option value="3000000">AED 3M+</option>':'<option value="">Any price</option><option value="0-100000">Under AED 100K</option><option value="100000-200000">AED 100K–200K</option><option value="200000">AED 200K+</option>';filter()}
+function filter(){const location=$('#location').value,type=$('#property-type').value,beds=$('#bedrooms').value,price=$('#price').value;let count=0;cards.forEach(c=>{const d=c.dataset;const n=Number(d.price);let visible=mode==='Lease'&&(!location||location===d.location)&&(!type||type===d.type)&&(!savedOnly||saved.includes(d.id));if(beds)visible=visible&&d.beds!==''&&(beds==='1-2'?Number(d.beds)>=1&&Number(d.beds)<=2:beds==='3'?Number(d.beds)>=3:Number(d.beds)===0);if(price){const [lo,hi]=price.split('-').map(Number);visible=visible&&n>=lo&&(!hi||n<hi)}const amenities=[...document.querySelectorAll('#amenities-dropdown input:checked')].map(input=>input.value);visible=visible&&amenities.every(value=>(d.amenities||'').split(',').includes(value));c.hidden=!visible;if(visible)count++});$('#results-count').textContent=`${count} ${savedOnly?'saved ':''}preview ${count===1?'property':'properties'}`;$('#empty-state').hidden=count>0;$('#empty-enquiry').dataset.enquiry=mode}
+function setMode(next){mode=next;$$('[data-tab]').forEach(b=>{const selected=b.dataset.tab===mode;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected))});$('#price').innerHTML=mode==='Buy'?'<option value="">Any Price</option><option value="0-1000000">Under AED 1M</option><option value="1000000-3000000">AED 1M–3M</option><option value="3000000">AED 3M+</option>':'<option value="">Any Price</option><option value="0-100000">Under AED 100K</option><option value="100000-200000">AED 100K–200K</option><option value="200000">AED 200K+</option>';filter()}
 $$('[data-tab]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.tab)));$$('[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
 $('#search-form').addEventListener('submit',e=>{e.preventDefault();filter();$('#results-count').scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})});
 function reset(){ $('#search-form').reset();savedOnly=false;$('#saved-toggle').setAttribute('aria-pressed','false');setMode('Lease') }
@@ -56,6 +56,27 @@ const infoPages={Privacy:'<p>This preview does not collect or submit enquiry for
 $$('[data-info]').forEach(b=>b.addEventListener('click',()=>info(b.dataset.info,infoPages[b.dataset.info])));$('#info-content').addEventListener('click',e=>{if(e.target.closest('a[href^="#"]'))$('#info-dialog').close()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('#navigation').classList.remove('open');$('.menu-toggle').setAttribute('aria-expanded','false')}});
 updateSaved();filter();if(location.hash.startsWith('#property-'))detail(location.hash.slice(10));window.addEventListener('hashchange',()=>{if(location.hash.startsWith('#property-'))detail(location.hash.slice(10))});
+})();
+
+/* Carry the inline Sell With ADURE form into the existing reviewable enquiry flow. */
+(() => {
+ const form=document.querySelector('#sell-form');
+ const dialog=document.querySelector('#enquiry-dialog');
+ if(!form||!dialog)return;
+ form.addEventListener('submit',event=>{
+  event.preventDefault();
+  const data=new FormData(form);
+  const contact=String(data.get('contact')||'').trim();
+  dialog.querySelector('#enquiry-type').value='Sell';
+  dialog.querySelector('[name="name"]').value=String(data.get('name')||'');
+  dialog.querySelector('[name="location"]').value=String(data.get('location')||'Abu Dhabi');
+  dialog.querySelector('[name="email"]').value=contact.includes('@')?contact:'';
+  dialog.querySelector('[name="phone"]').value=contact.includes('@')?'':contact;
+  dialog.querySelector('[name="message"]').value=`I would like to discuss selling my ${data.get('property_type')} in ${data.get('location')}.`;
+  dialog.querySelector('#enquiry-status').textContent='';
+  dialog.showModal();
+  document.body.style.overflow='hidden';
+ });
 })();
 
 (() => {
@@ -151,14 +172,23 @@ updateSaved();filter();if(location.hash.startsWith('#property-'))detail(location
   const arrow='<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   previous.innerHTML=arrow;next.innerHTML=arrow;
   const cards=[...track.querySelectorAll('.portfolio-card')];
+  const filters=[...document.querySelectorAll('[data-portfolio-filter]')];
   const behavior=()=>matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth';
+  const visibleCards=()=>cards.filter(card=>!card.hidden);
   function state(){previous.disabled=track.scrollLeft<2;next.disabled=track.scrollLeft>=track.scrollWidth-track.clientWidth-2}
-  function step(direction){const gap=parseFloat(getComputedStyle(track).gap)||24;track.scrollBy({left:direction*(cards[0].offsetWidth+gap),behavior:behavior()})}
+  function step(direction){const card=visibleCards()[0];if(!card)return;const gap=parseFloat(getComputedStyle(track).gap)||24;track.scrollBy({left:direction*(card.offsetWidth+gap),behavior:behavior()})}
   previous.addEventListener('click',()=>step(-1));next.addEventListener('click',()=>step(1));
   track.addEventListener('scroll',state,{passive:true});addEventListener('resize',state);
   const cardObserver=new ResizeObserver(state);
   cards.forEach(card=>cardObserver.observe(card));
   track.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();step(e.key==='ArrowRight'?1:-1)}});
+  filters.forEach(button=>button.addEventListener('click',()=>{
+    const filter=button.dataset.portfolioFilter;
+    filters.forEach(control=>control.setAttribute('aria-pressed',String(control===button)));
+    cards.forEach(card=>{card.hidden=filter!=='all'&&card.dataset.portfolioCategory!==filter});
+    track.scrollLeft=0;
+    state();
+  }));
   state();
 })();
 
@@ -167,10 +197,11 @@ updateSaved();filter();if(location.hash.startsWith('#property-'))detail(location
   if(!map)return;
   map.classList.add('is-static-map');
   const svg=map.querySelector('.abu-dhabi-graphic');
-  const image=document.createElement('img');image.className='static-map-image';image.src='assets/abu-dhabi-map-right-transparent.png';image.alt='Hand-drawn illustrated map of Abu Dhabi concentrated along the right side';image.width=1672;image.height=941;image.loading='lazy';map.prepend(image);svg.hidden=true;
+  const image=document.createElement('img');image.className='static-map-image';image.src='assets/adure-uae-footprint-no-pointers.png';image.alt='Illustrated ADURE footprint across Abu Dhabi, Saadiyat Island, Al Ain and Dubai';image.width=1671;image.height=941;image.loading='lazy';map.prepend(image);svg.hidden=true;
   svg?.removeAttribute('tabindex');svg?.removeAttribute('aria-label');
   map.querySelectorAll('[data-map-project]').forEach(pin=>{pin.removeAttribute('role');pin.removeAttribute('tabindex');pin.removeAttribute('aria-expanded');pin.removeAttribute('aria-controls')});
 })();
+
 
 (() => {
   const map=document.querySelector('.proof-map-art');
@@ -281,6 +312,19 @@ updateSaved();filter();if(location.hash.startsWith('#property-'))detail(location
   const stage=section.querySelector('.transition-stage');
   const points=[...section.querySelectorAll('.transition-point')];
   const images=[...section.querySelectorAll('.transition-image')];
+  /* Keep one composed architectural image throughout this compact section. */
+  section.classList.remove('is-scroll-story');
+  images.forEach((image,index)=>{
+    image.classList.toggle('is-active',index===0);
+    image.hidden=index!==0;
+  });
+  points.forEach((point,index)=>{
+    point.classList.add('is-active');
+    point.setAttribute('aria-pressed','true');
+    point.style.setProperty('--point-progress','1');
+    point.addEventListener('click',()=>point.blur());
+  });
+  return;
   const viewport=matchMedia('(min-width:851px) and (min-height:700px)');
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   let current=-1,desired=0,frame=0,busy=false,revision=0,animations=[];
@@ -425,9 +469,9 @@ apply();
 (() => {
  const base='assets/hidd-al-sadiyaat/';
  const replacements={
-  'assets/hero-coast.png':'DSC09714.jpg',
+  'assets/hero-coast.png':'DSC00222.jpg',
   'assets/service-buy-refined.png':'DSC00404.jpg',
-  'assets/villa-service.png':'DSC00222.jpg',
+  'assets/villa-service.png':'../polished-unique/DSC09375.png',
   'assets/abu-dhabi/qaryat-banner-2.jpg':'DSC09804.jpg',
   'assets/service-manage-refined.png':'DSC00241.jpg',
   'assets/abu-dhabi/qaryat-banner-1.jpg':'DSC09978.jpg',
@@ -450,8 +494,6 @@ apply();
   'assets/transition-inspect.png':'DSC09375.jpg',
   'assets/transition-takeover.png':'DSC00802.jpg',
   'assets/transition-manage.png':'DSC00680.jpg',
-  'assets/sector-government.png':'DSC09622.jpg',
-  'assets/sector-corporate-calm.png':'DSC09330.jpg',
   'assets/abu-dhabi/qaryat-lounge.jpg':'DSC00448.jpg'
  };
  document.querySelectorAll('img[src]').forEach(image=>{
@@ -460,4 +502,164 @@ apply();
   image.src=base+filename;
   image.alt='Hidd Al Saadiyat architecture and waterfront community, Abu Dhabi';
  });
+})();
+
+/* Property Discovery list/map treatment, matched to the ADURE concept reference. */
+(() => {
+ const discovery=document.querySelector('.discovery');
+ const searchGrid=discovery?.querySelector('.search-grid');
+ const searchButton=searchGrid?.querySelector(':scope > .button');
+ const propertyGrid=discovery?.querySelector('#property-results');
+ const emptyState=discovery?.querySelector('#empty-state');
+ const sectionActions=discovery?.querySelector('.section-actions');
+ const resultsBar=discovery?.querySelector('.results-bar');
+ if(!discovery||!searchGrid||!searchButton||!propertyGrid)return;
+
+ const fieldUpdates=[
+  ['#location','LOCATION','All Locations'],
+  ['#property-type','PROPERTY TYPE','All Types'],
+  ['#bedrooms','BEDROOMS','Any Bedrooms'],
+  ['#price','PRICE RANGE','Any Price']
+ ];
+ fieldUpdates.forEach(([selector,labelText,optionText])=>{
+  const select=discovery.querySelector(selector);
+  if(!select)return;
+  const label=select.closest('label');
+  if(label&&label.firstChild)label.firstChild.textContent=labelText;
+  if(select.options[0])select.options[0].textContent=optionText;
+ });
+ discovery.querySelector('#location').innerHTML='<option value="">All Locations</option><option>Qaryat Al Hidd, Saadiyat Island</option><option>Al Raha</option><option>Al Reem Island</option><option>Jubail Island</option><option>Al Ain</option>';
+ discovery.querySelector('#property-type').innerHTML='<option value="">All Types</option><option>Apartment</option><option>Villa</option><option>Retail</option><option>Office</option>';
+ discovery.querySelector('#bedrooms').innerHTML='<option value="">Any Bedrooms</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option>';
+ searchButton.textContent='Search Properties';
+
+ const toolbar=document.createElement('div');
+ toolbar.className='discovery-map-toolbar';
+ toolbar.innerHTML='<p><strong>Available now</strong> at Qaryat Al Hidd, Saadiyat Island</p>';
+ const switcher=document.createElement('div');
+ switcher.className='property-view-switcher';
+ switcher.setAttribute('role','group');
+ switcher.setAttribute('aria-label','Show properties as a list or on a map');
+ switcher.innerHTML='<button type="button" data-property-view="list" aria-pressed="true"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 6h11M5 10h11M5 14h11M2.5 6h.1M2.5 10h.1M2.5 14h.1"/></svg>List</button><button type="button" data-property-view="map" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17s5-4.8 5-9a5 5 0 1 0-10 0c0 4.2 5 9 5 9Z"/><circle cx="10" cy="8" r="1.7"/></svg>Map</button>';
+ toolbar.append(switcher);
+
+ const mapView=document.createElement('section');
+ mapView.className='discovery-map-view';
+ mapView.setAttribute('aria-label','ADURE communities map');
+ mapView.innerHTML=`
+  <div class="discovery-map-canvas">
+   <iframe class="community-google-map" title="Google map of Qaryat Al Hidd, Saadiyat Island" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+  </div>  <aside class="discovery-map-sidebar">
+   <p class="map-sidebar-label">ADURE COMMUNITIES</p>
+   <button type="button" class="community-row is-active" data-community="qaryat"><img src="assets/polished-unique/DSC00802.png" alt="Qaryat Al Hidd"><span><strong>Qaryat Al Hidd</strong><small>Saadiyat Island · Apartments and retail</small></span></button>
+   <button type="button" class="community-row" data-community="jubail"><img src="assets/polished-unique/DSC00680.png" alt="Jubail Island"><span><strong>Jubail Island</strong><small>Villas</small></span></button>
+   <button type="button" class="community-row" data-community="julphar"><img src="assets/polished-unique/DSC00882.png" alt="Julphar Residence"><span><strong>Julphar Residence</strong><small>Al Reem Island · Apartments</small></span></button>
+   <button type="button" class="community-row" data-community="raha"><img src="assets/polished-unique/DSC09570.png" alt="Al Raha"><span><strong>Al Raha</strong><small>Apartments and retail</small></span></button>
+   <p class="map-community-note">Pins mark each community. Individual listings appear on the map once property coordinates are added in the CMS.</p>
+  </aside>`;
+ propertyGrid.before(toolbar,mapView);
+
+ // Use the provider-hosted geographic map rather than requesting public OSM tiles.
+ const mapFrame=mapView.querySelector('.community-google-map');
+ const communities={
+  qaryat:'Qaryat Al Hidd, Saadiyat Island, Abu Dhabi',
+  jubail:'Jubail Island, Abu Dhabi',
+  julphar:'Julphar Residence, Al Reem Island, Abu Dhabi',
+  raha:'Al Raha Beach, Abu Dhabi'
+ };
+ let activeCommunity='qaryat';
+ function activateCommunity(community){
+  if(!communities[community])return;
+  activeCommunity=community;
+  mapView.querySelectorAll('[data-community]').forEach(control=>{
+   const selected=control.dataset.community===community;
+   control.classList.toggle('is-active',selected);
+   control.setAttribute('aria-pressed',String(selected));
+  });
+  mapFrame.title='Google map of '+communities[community];
+  mapFrame.src='https://maps.google.com/maps?q='+encodeURIComponent(communities[community])+'&z=14&output=embed';
+ }
+ mapView.querySelector('.map-community-note').textContent='Select a community to explore its location on the map';
+ mapView.addEventListener('click',event=>{
+  const control=event.target.closest('[data-community]');
+  if(control)activateCommunity(control.dataset.community);
+ }); function setView(view){
+  const mapActive=view==='map';
+  switcher.querySelectorAll('button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.propertyView===view)));
+  mapView.hidden=!mapActive;
+  if(mapActive&&!mapFrame.hasAttribute('src'))activateCommunity(activeCommunity);
+  propertyGrid.hidden=mapActive;
+  if(resultsBar)resultsBar.hidden=mapActive;
+  if(sectionActions)sectionActions.hidden=mapActive;
+  if(emptyState){
+   const hasVisibleProperty=[...propertyGrid.children].some(card=>!card.hidden);
+   emptyState.hidden=mapActive||hasVisibleProperty;
+  }
+ }
+ switcher.addEventListener('click',event=>{
+  const button=event.target.closest('[data-property-view]');
+  if(button)setView(button.dataset.propertyView);
+ });
+ setView('list');
+})();
+
+/* Count up proof statistics once as they enter the viewport. */
+(() => {
+ const metrics=document.querySelector('#proof .metrics');
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ if(!metrics || reduced.matches || !('IntersectionObserver' in window))return;
+ const counters=[];
+ metrics.querySelectorAll('dt').forEach(term=>{
+  // Animate only the number text; keep suffixes, units and accessible values intact.
+  term.setAttribute('aria-label',term.textContent.trim());
+  const walker=document.createTreeWalker(term,NodeFilter.SHOW_TEXT);
+  let node;
+  while((node=walker.nextNode())){
+   if(!/\d/.test(node.nodeValue))continue;
+   const original=node.nodeValue;
+   counters.push({node,original,render:progress=>original.replace(/\d[\d,]*/g,value=>{
+    const total=Number(value.replace(/,/g,''));
+    const current=Math.round(total*progress);
+    return value.includes(',')?current.toLocaleString('en-US'):String(current);
+   })});
+  }
+ });
+ let frame=0;
+ const finish=()=>{cancelAnimationFrame(frame);counters.forEach(counter=>counter.node.nodeValue=counter.original)};
+ const observer=new IntersectionObserver(entries=>{
+  if(!entries.some(entry=>entry.isIntersecting))return;
+  observer.disconnect();
+  if(reduced.matches)return;
+  const start=performance.now();
+  const tick=now=>{
+   const progress=Math.min(1,(now-start)/1600);
+   const eased=1-Math.pow(1-progress,3);
+   counters.forEach(counter=>counter.node.nodeValue=counter.render(eased));
+   if(progress<1)frame=requestAnimationFrame(tick);else finish();
+  };
+  frame=requestAnimationFrame(tick);
+ },{threshold:.35});
+ observer.observe(metrics);
+ reduced.addEventListener('change',event=>{if(event.matches){observer.disconnect();finish()}});
+})();
+/* Facilities and amenities dropdown. */
+(() => {
+ const trigger=document.querySelector('.more-filters');
+ const form=document.querySelector('#search-form');
+ if(!trigger||!form)return;
+ const panel=document.createElement('div');
+ panel.id='amenities-dropdown';panel.className='amenities-dropdown';panel.hidden=true;
+ panel.innerHTML='<fieldset><legend>Facilities &amp; Amenities</legend><div class="amenities-options">'+[['parking','Parking'],['balcony','Balcony'],['pool','Swimming Pool'],['gym','Gym'],['security','24/7 Security'],['pets','Pet Friendly']].map(([value,label])=>`<label><input type="checkbox" name="amenities" value="${value}"><span>${label}</span></label>`).join('')+'</div></fieldset><div class="amenities-actions"><button type="button" class="amenities-clear">Clear</button><button type="button" class="button blue amenities-apply">Apply Filters</button></div>';
+ form.append(panel);
+ trigger.setAttribute('aria-controls',panel.id);
+ const close=()=>{panel.hidden=true;trigger.setAttribute('aria-expanded','false')};
+ const update=()=>{const count=panel.querySelectorAll('input:checked').length;trigger.querySelector('strong').textContent=count?`More Filters (${count})`:'+ More Filters'};
+ trigger.addEventListener('click',()=>{const open=panel.hidden;panel.hidden=!open;trigger.setAttribute('aria-expanded',String(open))});
+ panel.addEventListener('change',update);
+ panel.querySelector('.amenities-clear').addEventListener('click',()=>{panel.querySelectorAll('input').forEach(input=>input.checked=false);update();form.requestSubmit()});
+ panel.querySelector('.amenities-apply').addEventListener('click',()=>{close();form.requestSubmit();trigger.focus({preventScroll:true})});
+ form.addEventListener('submit',close);
+ form.addEventListener('reset',()=>{close();setTimeout(update,0)});
+ document.addEventListener('click',event=>{if(!panel.contains(event.target)&&!trigger.contains(event.target))close()});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden){close();trigger.focus()}});
 })();
