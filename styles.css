@@ -2125,3 +2125,38 @@ main>section.contact .contact-shade{background:linear-gradient(90deg,rgba(6,71,1
 .discovery-map-canvas{background:#edf3f5}
 .community-google-map{display:block;position:absolute;inset:0;width:100%;height:100%;min-height:520px;border:0}
 @media(max-width:700px){.community-google-map{min-height:360px}}
+/* Shared vertical rhythm, including sections whose content sits in an inner frame. */
+main>section.section:not(.proof-editorial){padding-block:var(--section-space)}
+main>section.management .management-copy,
+main>section.contact .contact-inner,
+main>section.transition-story .transition-content,
+main>section.transition-story.is-scroll-story .transition-content,
+footer.section.footer-refined{padding-block:var(--section-space)}
+
+/* Keep the proof artwork full bleed while aligning the copy with other sections. */
+main>section.proof-editorial{padding-block:0}
+main>section.proof-editorial .proof-frame{
+  height:auto;
+  padding-block:var(--section-space);
+}
+main>section.proof-editorial .section-heading{padding-block:0}
+@media(min-width:901px){
+  main>section.proof-editorial .metrics{margin-bottom:0}
+  main>section.proof-editorial .proof-map-art{grid-area:auto}
+}
+@media(max-width:900px){
+  main>section.proof-editorial{padding-block:var(--section-space)}
+  main>section.proof-editorial .proof-frame{padding-block:0}
+}
+
+/* Allow the content to determine height instead of adding uneven empty space. */
+main>section.transition-story .transition-stage,
+main>section.transition-story .transition-content{
+  height:auto;
+  min-height:0;
+}
+@media(min-width:851px){
+  main>section.management .management-stage{height:auto;min-height:0}
+  main>section.management.has-scroll-story .management-stage{min-height:100svh}
+  main>section.management .management-photo{height:100%}
+}
